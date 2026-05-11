@@ -303,9 +303,9 @@ resource "aws_launch_template" "app_lt" {
   key_name      = "nordiccart-key"
 
 
-iam_instance_profile {
-  name = aws_iam_instance_profile.ec2_profile.name
-}
+  iam_instance_profile {
+    name = aws_iam_instance_profile.ec2_profile.name
+  }
 
 
 
@@ -313,7 +313,7 @@ iam_instance_profile {
     aws_security_group.app_sg.id
   ]
 
-user_data = base64encode(<<-EOF
+  user_data = base64encode(<<-EOF
 #!/bin/bash
 
 # Update packages
@@ -399,7 +399,7 @@ systemctl enable nordiccart
 # Start service
 systemctl start nordiccart
 EOF
-)
+  )
 
   tag_specifications {
     resource_type = "instance"
@@ -420,7 +420,7 @@ resource "aws_autoscaling_group" "app_asg" {
 
   vpc_zone_identifier = [
     aws_subnet.private_app_a.id,
-  aws_subnet.private_app_b.id
+    aws_subnet.private_app_b.id
   ]
 
   target_group_arns = [
@@ -490,10 +490,10 @@ resource "aws_security_group" "vpc_endpoint_sg" {
 
 
 resource "aws_vpc_endpoint" "ssm" {
-  vpc_id              = aws_vpc.main.id
-  service_name        = "com.amazonaws.eu-central-1.ssm"
-  vpc_endpoint_type   = "Interface"
-  subnet_ids          = [
+  vpc_id            = aws_vpc.main.id
+  service_name      = "com.amazonaws.eu-central-1.ssm"
+  vpc_endpoint_type = "Interface"
+  subnet_ids = [
     aws_subnet.private_app_a.id,
     aws_subnet.private_app_b.id
   ]
@@ -502,10 +502,10 @@ resource "aws_vpc_endpoint" "ssm" {
 }
 
 resource "aws_vpc_endpoint" "ssmmessages" {
-  vpc_id              = aws_vpc.main.id
-  service_name        = "com.amazonaws.eu-central-1.ssmmessages"
-  vpc_endpoint_type   = "Interface"
-  subnet_ids          = [
+  vpc_id            = aws_vpc.main.id
+  service_name      = "com.amazonaws.eu-central-1.ssmmessages"
+  vpc_endpoint_type = "Interface"
+  subnet_ids = [
     aws_subnet.private_app_a.id,
     aws_subnet.private_app_b.id
   ]
@@ -514,10 +514,10 @@ resource "aws_vpc_endpoint" "ssmmessages" {
 }
 
 resource "aws_vpc_endpoint" "ec2messages" {
-  vpc_id              = aws_vpc.main.id
-  service_name        = "com.amazonaws.eu-central-1.ec2messages"
-  vpc_endpoint_type   = "Interface"
-  subnet_ids          = [
+  vpc_id            = aws_vpc.main.id
+  service_name      = "com.amazonaws.eu-central-1.ec2messages"
+  vpc_endpoint_type = "Interface"
+  subnet_ids = [
     aws_subnet.private_app_a.id,
     aws_subnet.private_app_b.id
   ]
