@@ -8,6 +8,15 @@ resource "aws_vpc" "main" {
   }
 }
 
+terraform {
+  backend "s3" {
+    bucket         = "nordiccart-terraform-state-unique"
+    key            = "global/terraform.tfstate"
+    region         = "eu-central-1"
+    dynamodb_table = "terraform-locks"
+    encrypt        = true
+  }
+}
 
 resource "aws_subnet" "public_a" {
   vpc_id                  = aws_vpc.main.id
