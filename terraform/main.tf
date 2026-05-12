@@ -564,3 +564,49 @@ resource "aws_cloudwatch_metric_alarm" "high_cpu" {
     aws_sns_topic.alerts.arn
   ]
 }
+
+resource "aws_cloudwatch_dashboard" "main" {
+  dashboard_name = "nordiccart-dashboard"
+
+  dashboard_body = jsonencode({
+    widgets = [
+      {
+        type   = "metric"
+        x      = 0
+        y      = 0
+        width  = 12
+        height = 6
+
+        properties = {
+          metrics = [
+            [ "AWS/EC2", "CPUUtilization", "AutoScalingGroupName", aws_autoscaling_group.app_asg.name ]
+          ]
+
+          period = 300
+          stat   = "Average"
+          region = "eu-central-1"
+          title  = "EC2 CPU Utilization"
+        }
+      },
+
+      {
+        type   = "metric"
+        x      = 12
+        y      = 0
+        width  = 12
+        height = 6
+
+        properties = {
+          metrics = [
+            [ "AWS/ApplicationELB", "RequestCount", "LoadBalancer", aws_lb.app_alb.arn_suffix ]
+          ]
+
+          period = 300
+          stat   = "Sum"
+          region = "eu-central-1"
+          title  = "ALB Request Count"
+        }
+      }
+    ]
+  })
+}
