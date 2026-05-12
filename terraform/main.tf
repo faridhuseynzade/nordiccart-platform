@@ -453,8 +453,8 @@ resource "aws_autoscaling_group" "app_asg" {
   min_size         = 2
 
   vpc_zone_identifier = [
-    aws_subnet.private_app_a.id,
-    aws_subnet.private_app_b.id
+    aws_subnet.public_a.id,
+    aws_subnet.public_b.id
   ]
 
   target_group_arns = [
