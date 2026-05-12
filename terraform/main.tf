@@ -1,12 +1,4 @@
-resource "aws_vpc" "main" {
-  cidr_block           = var.vpc_cidr
-  enable_dns_hostnames = true
-  enable_dns_support   = true
 
-  tags = {
-    Name = "nordiccart-vpc"
-  }
-}
 
 terraform {
   backend "s3" {
@@ -18,78 +10,18 @@ terraform {
   }
 }
 
-resource "aws_subnet" "public_a" {
-  vpc_id                  = aws_vpc.main.id
-  cidr_block              = "10.0.1.0/24"
-  availability_zone       = "eu-central-1a"
-  map_public_ip_on_launch = true
-
-  tags = {
-    Name = "public-subnet-a"
-  }
-}
-
-resource "aws_subnet" "public_b" {
-  vpc_id                  = aws_vpc.main.id
-  cidr_block              = "10.0.2.0/24"
-  availability_zone       = "eu-central-1b"
-  map_public_ip_on_launch = true
-
-  tags = {
-    Name = "public-subnet-b"
-  }
-}
 
 
-resource "aws_subnet" "private_app_a" {
-  vpc_id            = aws_vpc.main.id
-  cidr_block        = "10.0.11.0/24"
-  availability_zone = "eu-central-1a"
-
-  tags = {
-    Name = "private-app-a"
-  }
-}
 
 
-resource "aws_subnet" "private_app_b" {
-  vpc_id            = aws_vpc.main.id
-  cidr_block        = "10.0.12.0/24"
-  availability_zone = "eu-central-1b"
-
-  tags = {
-    Name = "private-app-b"
-  }
-}
-
-resource "aws_subnet" "private_db_a" {
-  vpc_id            = aws_vpc.main.id
-  cidr_block        = "10.0.21.0/24"
-  availability_zone = "eu-central-1a"
-
-  tags = {
-    Name = "private-db-a"
-  }
-}
-
-
-resource "aws_subnet" "private_db_b" {
-  vpc_id            = aws_vpc.main.id
-  cidr_block        = "10.0.22.0/24"
-  availability_zone = "eu-central-1b"
-
-  tags = {
-    Name = "private-db-b"
-  }
-}
 
 
 resource "aws_db_subnet_group" "main" {
   name = "nordiccart-db-subnet-group"
 
   subnet_ids = [
-    aws_subnet.private_db_a.id,
-    aws_subnet.private_db_b.id
+    module.vpc.private_db_a_id,
+    module.vpc.private_db_b_id
   ]
 
   tags = {
@@ -131,44 +63,19 @@ resource "aws_db_instance" "postgres" {
 }
 
 
-resource "aws_internet_gateway" "igw" {
-  vpc_id = aws_vpc.main.id
-
-  tags = {
-    Name = "nordiccart-igw"
-  }
-}
 
 
-resource "aws_route_table" "public" {
-  vpc_id = aws_vpc.main.id
 
-  route {
-    cidr_block = "0.0.0.0/0"
-    gateway_id = aws_internet_gateway.igw.id
-  }
 
-  tags = {
-    Name = "public-route-table"
-  }
-}
 
-resource "aws_route_table_association" "public_a" {
-  subnet_id      = aws_subnet.public_a.id
-  route_table_id = aws_route_table.public.id
-}
 
-resource "aws_route_table_association" "public_b" {
-  subnet_id      = aws_subnet.public_b.id
-  route_table_id = aws_route_table.public.id
-}
 
 
 
 resource "aws_security_group" "alb_sg" {
   name        = "alb-security-group"
   description = "Allow HTTP and HTTPS traffic"
-  vpc_id      = aws_vpc.main.id
+  vpc_id      = module.vpc.vpc_id
 
   ingress {
     description = "HTTP"
@@ -202,7 +109,7 @@ resource "aws_security_group" "alb_sg" {
 resource "aws_security_group" "app_sg" {
   name        = "app-security-group"
   description = "Allow application traffic from ALB only"
-  vpc_id      = aws_vpc.main.id
+  vpc_id      = module.vpc.vpc_id
 
   ingress {
     description     = "Application traffic from ALB"
@@ -229,7 +136,7 @@ resource "aws_security_group" "app_sg" {
 resource "aws_security_group" "db_sg" {
   name        = "db-security-group"
   description = "Allow PostgreSQL traffic from app servers only"
-  vpc_id      = aws_vpc.main.id
+  vpc_id      = module.vpc.vpc_id
 
   ingress {
     description     = "PostgreSQL from app servers"
@@ -256,7 +163,7 @@ resource "aws_lb_target_group" "app_tg" {
   name     = "app-target-group"
   port     = 5000
   protocol = "HTTP"
-  vpc_id   = aws_vpc.main.id
+  vpc_id   = module.vpc.vpc_id
 
   health_check {
     path                = "/"
@@ -281,8 +188,8 @@ resource "aws_lb" "app_alb" {
   security_groups = [aws_security_group.alb_sg.id]
 
   subnets = [
-    aws_subnet.public_a.id,
-    aws_subnet.public_b.id
+    module.vpc.public_subnet_a_id,
+    module.vpc.public_subnet_b_id
   ]
 
   enable_deletion_protection = false
@@ -453,8 +360,8 @@ resource "aws_autoscaling_group" "app_asg" {
   min_size         = 2
 
   vpc_zone_identifier = [
-    aws_subnet.public_a.id,
-    aws_subnet.public_b.id
+    module.vpc.public_subnet_a_id,
+    module.vpc.public_subnet_b_id
   ]
 
   target_group_arns = [
@@ -482,30 +389,16 @@ resource "aws_iam_instance_profile" "ec2_profile" {
 }
 
 
-resource "aws_route_table" "private" {
-  vpc_id = aws_vpc.main.id
-
-  tags = {
-    Name = "private-route-table"
-  }
-}
 
 
-resource "aws_route_table_association" "private_app_a" {
-  subnet_id      = aws_subnet.private_app_a.id
-  route_table_id = aws_route_table.private.id
-}
 
-resource "aws_route_table_association" "private_app_b" {
-  subnet_id      = aws_subnet.private_app_b.id
-  route_table_id = aws_route_table.private.id
-}
+
 
 
 resource "aws_security_group" "vpc_endpoint_sg" {
   name        = "vpc-endpoint-sg"
   description = "Allow HTTPS from VPC"
-  vpc_id      = aws_vpc.main.id
+  vpc_id      = module.vpc.vpc_id
 
   ingress {
     from_port   = 443
@@ -524,36 +417,36 @@ resource "aws_security_group" "vpc_endpoint_sg" {
 
 
 resource "aws_vpc_endpoint" "ssm" {
-  vpc_id            = aws_vpc.main.id
+  vpc_id            = module.vpc.vpc_id
   service_name      = "com.amazonaws.eu-central-1.ssm"
   vpc_endpoint_type = "Interface"
   subnet_ids = [
-    aws_subnet.private_app_a.id,
-    aws_subnet.private_app_b.id
+    module.vpc.private_app_a_id,
+    module.vpc.private_app_b_id
   ]
   security_group_ids  = [aws_security_group.vpc_endpoint_sg.id]
   private_dns_enabled = true
 }
 
 resource "aws_vpc_endpoint" "ssmmessages" {
-  vpc_id            = aws_vpc.main.id
+  vpc_id            = module.vpc.vpc_id
   service_name      = "com.amazonaws.eu-central-1.ssmmessages"
   vpc_endpoint_type = "Interface"
   subnet_ids = [
-    aws_subnet.private_app_a.id,
-    aws_subnet.private_app_b.id
+    module.vpc.private_app_a_id,
+    module.vpc.private_app_b_id
   ]
   security_group_ids  = [aws_security_group.vpc_endpoint_sg.id]
   private_dns_enabled = true
 }
 
 resource "aws_vpc_endpoint" "ec2messages" {
-  vpc_id            = aws_vpc.main.id
+  vpc_id            = module.vpc.vpc_id
   service_name      = "com.amazonaws.eu-central-1.ec2messages"
   vpc_endpoint_type = "Interface"
   subnet_ids = [
-    aws_subnet.private_app_a.id,
-    aws_subnet.private_app_b.id
+    module.vpc.private_app_a_id,
+    module.vpc.private_app_b_id
   ]
   security_group_ids  = [aws_security_group.vpc_endpoint_sg.id]
   private_dns_enabled = true
@@ -646,4 +539,20 @@ resource "aws_cloudwatch_log_group" "app_logs" {
 resource "aws_iam_role_policy_attachment" "cloudwatch_agent" {
   role       = "nordiccart-ec2-role"
   policy_arn = "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
+}
+
+
+
+module "vpc" {
+  source = "./modules/vpc"
+
+  vpc_cidr             = "10.0.0.0/16"
+  public_subnet_a_cidr = "10.0.1.0/24"
+  public_subnet_b_cidr = "10.0.2.0/24"
+
+  private_app_a_cidr = "10.0.11.0/24"
+  private_app_b_cidr = "10.0.12.0/24"
+
+  private_db_a_cidr = "10.0.21.0/24"
+  private_db_b_cidr = "10.0.22.0/24"
 }
