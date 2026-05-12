@@ -579,7 +579,7 @@ resource "aws_cloudwatch_dashboard" "main" {
 
         properties = {
           metrics = [
-            [ "AWS/EC2", "CPUUtilization", "AutoScalingGroupName", aws_autoscaling_group.app_asg.name ]
+            ["AWS/EC2", "CPUUtilization", "AutoScalingGroupName", aws_autoscaling_group.app_asg.name]
           ]
 
           period = 300
@@ -598,7 +598,7 @@ resource "aws_cloudwatch_dashboard" "main" {
 
         properties = {
           metrics = [
-            [ "AWS/ApplicationELB", "RequestCount", "LoadBalancer", aws_lb.app_alb.arn_suffix ]
+            ["AWS/ApplicationELB", "RequestCount", "LoadBalancer", aws_lb.app_alb.arn_suffix]
           ]
 
           period = 300
