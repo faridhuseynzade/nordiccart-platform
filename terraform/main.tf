@@ -328,6 +328,31 @@ resource "aws_launch_template" "app_lt" {
 # Update packages
 apt update -y
 
+sudo apt update -y
+sudo apt install -y amazon-cloudwatch-agent
+
+cat <<EOF > /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json
+{
+  "logs": {
+    "logs_collected": {
+      "files": {
+        "collect_list": [
+          {
+            "file_path": "/home/ubuntu/app.log",
+            "log_group_name": "/nordiccart/app",
+            "log_stream_name": "{instance_id}"
+          }
+        ]
+      }
+    }
+  }
+}
+EOF
+
+
+sudo systemctl enable amazon-cloudwatch-agent
+sudo systemctl restart amazon-cloudwatch-agent
+
 # Install dependencies
 apt install -y \
   python3-flask \
@@ -392,7 +417,7 @@ After=network.target
 [Service]
 User=ubuntu
 WorkingDirectory=/home/ubuntu
-ExecStart=/usr/bin/python3 /home/ubuntu/app.py
+ExecStart=/bin/bash -c '/usr/bin/python3 /home/ubuntu/app.py >> /home/ubuntu/app.log 2>&1'
 Restart=always
 
 [Install]
@@ -609,4 +634,16 @@ resource "aws_cloudwatch_dashboard" "main" {
       }
     ]
   })
+}
+
+
+resource "aws_cloudwatch_log_group" "app_logs" {
+  name              = "/nordiccart/app"
+  retention_in_days = 7
+}
+
+
+resource "aws_iam_role_policy_attachment" "cloudwatch_agent" {
+  role       = "nordiccart-ec2-role"
+  policy_arn = "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
 }
