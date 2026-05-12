@@ -331,7 +331,7 @@ apt update -y
 sudo apt update -y
 sudo apt install -y amazon-cloudwatch-agent
 
-cat <<EOF > /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json
+cat <<CWAGENT > /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json
 {
   "logs": {
     "logs_collected": {
@@ -347,7 +347,7 @@ cat <<EOF > /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json
     }
   }
 }
-EOF
+CWAGENT
 
 
 sudo systemctl enable amazon-cloudwatch-agent
